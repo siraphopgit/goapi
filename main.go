@@ -2,21 +2,18 @@ package main
 
 import (
 	"context"
-	"github.com/gorilla/mux"
-	"github.com/nicholasjackson/building-microservices-youtube/product-api/handlers"
-	"github.com/nicholasjackson/env"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/go-openapi/runtime/middleware"
+	"github.com/gorilla/mux"
+	"github.com/siraphopgit/building-microservices-youtube/product-api/handlers"
 )
 
-var bindAddress = env.String("BIND_ADDRESS", false, ":9090", "Bind address for the server")
-
 func main() {
-
-	env.Parse()
 
 	l := log.New(os.Stdout, "products-api ", log.LstdFlags)
 
@@ -37,11 +34,18 @@ func main() {
 	postRouter.HandleFunc("/", ph.AddProduct)
 	postRouter.Use(ph.MiddlewareValidateProduct)
 
-	//sm.Handle("/products", ph)
+	// deleteRouter := sm.Methods(http.MethodDelete).Subrouter()
+	// deleteRouter.HandleFunc("/{id:[0-9]+}", ph.DeleteProduct)
+
+	opts := middleware.RedocOpts{SpecURL: "/swagger.yaml"}
+	sh := middleware.Redoc(opts, nil)
+
+	getRouter.Handle("/docs", sh)
+	getRouter.Handle("/swagger.yaml", http.FileServer(http.Dir("./")))
 
 	// create a new server
 	s := http.Server{
-		Addr:         *bindAddress,      // configure the bind address
+		Addr:         ":9090",           // configure the bind address
 		Handler:      sm,                // set the default handler
 		ErrorLog:     l,                 // set the logger for the server
 		ReadTimeout:  5 * time.Second,   // max time to read request from the client
